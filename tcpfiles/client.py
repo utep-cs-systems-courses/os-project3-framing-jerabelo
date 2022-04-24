@@ -4,6 +4,7 @@ sys.path.append("../lib")
 import params
 
 IP = socket.gethostbyname(socket.gethostname())
+PORT = 4466
 FORMAT = "utf-8"
 SIZE = 1024
 
@@ -49,42 +50,43 @@ def main():
         print("Could not open socket")
         sys.exit(1)
 
+    while True:
+        data = s.recv(SIZE).decode(FORMAT)
+        cmd, msg = data.split("@")
 
-    # Asking user to enter files in files folder to send to folder
-    files = input('Enter file(s) to send: ')
-    files_to_send = files.split()
+        if cmd == "OK":
+            print(f"{msg}")
+        elif cmd == "DISCONNECTED":
+            print(f"{msg}")
+            break
 
-    # Traversing throught the files to send
-    for file_name in files_to_send:
-        file = open("files/" + file_name)
-        data = file.read()
+        data = input("> ")
+        data = data.split(" ")
+        cmd = data[0]
 
-        # Sending the filename to the server
-        s.send(file_name.encode(FORMAT))
-        msg = s.recv(SIZE).decode(FORMAT)
-        print(f"[SERVER]: {msg}")
+        if cmd == "HELP":
+            s.send(cmd.encode(FORMAT))
+            # Closing down the thread
+        elif cmd == "LOGOUT":
+            s.send(cmd.encode(FORMAT))
+            break
+        elif cmd == "LIST":
+            s.send(cmd.encode(FORMAT))
 
-        # Seding the data in file to server
-        s.send(data.encode(FORMAT))
-        msg = s.recv(SIZE).decode(FORMAT)
-        print(f"[SERVER]: {msg}")
+        elif cmd == "UPLOAD":
+            ## UPLOAD@filename@textdata
+            path = data[1]
+            with open(f"{path}", "r") as f:
+                text = f.read()
+            ## files/data.txt
+            filename = path.split("/")[-1]
+            send_data = f"{cmd}@{filename}@{text}"
+            s.send(send_data.encode(FORMAT))
+            pass
+        elif cmd == "DELETE":
+            s.send(f"{cmd}@{data[1]}".encode(FORMAT))
 
-    # Open & read the file data.
-    #file = open("files/txtfile1.txt","r")
-    #data = file.read()
 
-    # Sending the filename to the server.
-    #s.send("txtfile1.txt".encode(FORMAT))
-    #msg = s.recv(SIZE).decode(FORMAT)
-    #print(f"[SERVER]: {msg}")
-
-    #s.send(data.encode(FORMAT))
-    #msg = s.recv(SIZE).decode(FORMAT)
-    #print(f"[SERVER]: {msg}")
-
-    # Closing file & closing connection to server
-    file.close()
+    print("Disconnected from the server")
     s.close()
-
-
 main()
